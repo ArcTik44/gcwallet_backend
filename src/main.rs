@@ -4,7 +4,7 @@ mod model;
 use controllers::user_controller;
 use dotenv::dotenv;
 use actix_web::{ App, HttpServer, get, HttpResponse, Responder, web};
-use mongodb::{Client};
+use mongodb::Client;
 
 #[get("/")]
 async fn hello() -> impl Responder {

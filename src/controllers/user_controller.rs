@@ -1,7 +1,7 @@
-use crate::model::model::{User, Login, Register, UpdateData, InputCard};
+use bcrypt::{DEFAULT_COST,hash,verify};
+use crate::model::model::{User, Login, Register, UpdateData, InputCard, UserType};
 use actix_web::{web::{Path, Json, Data}, HttpResponse, Responder, post, get};
 use mongodb::{Client, bson::{doc, oid::ObjectId}, Collection};
-
 const MONGO_DB: &'static str = "dev";
 const MONGOCOLLECTION: &'static str = "users";
 
@@ -25,6 +25,12 @@ pub async fn get_user_by_id(data: Data<Client>,user_id:Path<String>) -> impl Res
 #[post("/api/users/signin")]
 pub async fn sign_in(data: Data<Client>, user:Json<Login>) -> impl Responder{
     let collection:Collection<User> = data.database(MONGO_DB).collection(MONGOCOLLECTION);
+    let user_find = collection.find_one(
+        doc!{
+            "email": user.email.to_owned(),
+            "password":user.password.to_owned()
+        }, None).await;
+        verify(user.password,user_find.password);
     match collection.find_one(doc!{"email": user.email.to_owned(),"password":user.password.to_owned()}, None).await {
         Ok(Some(_user))=> HttpResponse::Ok().json(_user),
         Ok(None)=>{
@@ -36,13 +42,15 @@ pub async fn sign_in(data: Data<Client>, user:Json<Login>) -> impl Responder{
 
 #[post("/api/users/signup")]
 pub async fn sign_up(data: Data<Client>,user:Json<Register>)-> impl Responder{
+    let mut hash_pass = hash(&user.password.unwrap(),DEFAULT_COST).unwrap();
     let coll = data.database(MONGO_DB).collection(MONGOCOLLECTION);
     let data = User{
         _id:None,
         cards:None,
         email:user.email.to_owned(),
-        password:user.password.to_owned(),
-        username:user.username.to_owned()
+        password:hash_pass.to_owned(),
+        username:user.username.to_owned(),
+        user_type: UserType::REG_USER
     };
     let inserted = coll.insert_one(data,None).await;
     match inserted{
@@ -53,11 +61,12 @@ pub async fn sign_up(data: Data<Client>,user:Json<Register>)-> impl Responder{
 
 #[post("/api/users/update")]
 pub async fn update_user(data: Data<Client>, user:Json<UpdateData>)-> impl Responder{
+    let update_pass = hash(user.password, DEFAULT_COST).unwrap();
     let coll:Collection<User> = data.database(MONGO_DB).collection(MONGOCOLLECTION);
     let updated = coll.update_one(doc! {"_id":&user._id},
     doc! {"$set":{
     "email":user.email.to_owned(),
-    "password":user.password.to_owned(),
+    "password":update_pass.to_owned(),
     "username":user.username.to_owned()
     }}, None).await;
 

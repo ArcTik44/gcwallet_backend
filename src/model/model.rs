@@ -9,8 +9,17 @@ pub struct User{
     pub cards:Option<Vec<Card>>,
     pub email:Option<String>,
     pub password:Option<String>,
-    pub username:Option<String>
+    pub username:Option<String>,
+    pub user_type:u8
 }
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
+pub struct UserType;
+impl UserType{
+    pub const ADMIN:u8 = 1;
+    pub const REG_USER:u8 = 2;
+    pub const GYM_OWNER:u8 = 3;
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Gym{
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
@@ -31,6 +40,7 @@ pub struct Register{
     pub username:Option<String>,
     pub email: Option<String>,
     pub password:Option<String>,
+    pub user_type: Option<u8>
 }
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub struct UpdateData{
