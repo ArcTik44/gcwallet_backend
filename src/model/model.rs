@@ -1,4 +1,3 @@
-
 use mongodb::bson::oid::ObjectId;
 use serde::{Serialize, Deserialize};
 
@@ -10,14 +9,13 @@ pub struct User{
     pub email:Option<String>,
     pub password:Option<String>,
     pub username:Option<String>,
-    pub user_type:u8
+    pub user_type: UserType
 }
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
-pub struct UserType;
-impl UserType{
-    pub const ADMIN:u8 = 1;
-    pub const REG_USER:u8 = 2;
-    pub const GYM_OWNER:u8 = 3;
+pub enum UserType{
+   GymUser,
+   User,
+   Admin
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
@@ -40,7 +38,7 @@ pub struct Register{
     pub username:Option<String>,
     pub email: Option<String>,
     pub password:Option<String>,
-    pub user_type: Option<u8>
+    pub user_type: Option<UserType>
 }
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub struct UpdateData{

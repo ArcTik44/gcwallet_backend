@@ -1,9 +1,10 @@
-use bcrypt::{DEFAULT_COST,hash,verify};
-use crate::model::model::{User, Login, Register, UpdateData, InputCard, UserType};
+use bcrypt::{DEFAULT_COST,hash, verify};
+use crate::model::model::{User, Login, Register, UpdateData, InputCard, UserType, Card};
 use actix_web::{web::{Path, Json, Data}, HttpResponse, Responder, post, get};
 use mongodb::{Client, bson::{doc, oid::ObjectId}, Collection};
 const MONGO_DB: &'static str = "dev";
 const MONGOCOLLECTION: &'static str = "users";
+const MONGOCOLLECTION_CARDS: &'static str = "cards";
 
 #[get("/api/users/{id}")]
 pub async fn get_user_by_id(data: Data<Client>,user_id:Path<String>) -> impl Responder {
@@ -27,30 +28,33 @@ pub async fn sign_in(data: Data<Client>, user:Json<Login>) -> impl Responder{
     let collection:Collection<User> = data.database(MONGO_DB).collection(MONGOCOLLECTION);
     let user_find = collection.find_one(
         doc!{
-            "email": user.email.to_owned(),
-            "password":user.password.to_owned()
+            "email": user.email.to_owned()
         }, None).await;
-        verify(user.password,user_find.password);
-    match collection.find_one(doc!{"email": user.email.to_owned(),"password":user.password.to_owned()}, None).await {
-        Ok(Some(_user))=> HttpResponse::Ok().json(_user),
-        Ok(None)=>{
-            HttpResponse::NotFound().body(format!("No user found with this email"))
+
+    match user_find {
+        Ok(Some(user_found))=>
+        match verify(user.password.as_deref().map(|s| s.as_bytes()).unwrap_or(&[]),user_found.password.as_ref().unwrap().as_str()){
+            Ok(true)=> HttpResponse::Ok().json(user_found),
+            Ok(false)=>HttpResponse::NotFound().body(format!("Wrong Credentials")),
+            Err(_)=>HttpResponse::InternalServerError().body(format!("Shit happened"))
         }
-        Err(err)=>HttpResponse::InternalServerError().body(err.to_string()),
+        Ok(None)=> HttpResponse::NotFound().body(format!("User does not exist")),
+        Err(err)=> HttpResponse::InternalServerError().body(err.to_string()),
+        
     }
 }
 
 #[post("/api/users/signup")]
 pub async fn sign_up(data: Data<Client>,user:Json<Register>)-> impl Responder{
-    let mut hash_pass = hash(&user.password.unwrap(),DEFAULT_COST).unwrap();
+    let hash_pass = hash(user.password.as_deref().map(|s| s.as_bytes()).unwrap_or(&[]),DEFAULT_COST).unwrap();
     let coll = data.database(MONGO_DB).collection(MONGOCOLLECTION);
     let data = User{
         _id:None,
         cards:None,
         email:user.email.to_owned(),
-        password:hash_pass.to_owned(),
+        password:Some(hash_pass.to_owned()),
         username:user.username.to_owned(),
-        user_type: UserType::REG_USER
+        user_type: UserType::User
     };
     let inserted = coll.insert_one(data,None).await;
     match inserted{
@@ -61,7 +65,7 @@ pub async fn sign_up(data: Data<Client>,user:Json<Register>)-> impl Responder{
 
 #[post("/api/users/update")]
 pub async fn update_user(data: Data<Client>, user:Json<UpdateData>)-> impl Responder{
-    let update_pass = hash(user.password, DEFAULT_COST).unwrap();
+    let update_pass = hash(user.password.as_deref().map(|s| s.as_bytes()).unwrap_or(&[]), DEFAULT_COST).unwrap();
     let coll:Collection<User> = data.database(MONGO_DB).collection(MONGOCOLLECTION);
     let updated = coll.update_one(doc! {"_id":&user._id},
     doc! {"$set":{
@@ -76,10 +80,17 @@ pub async fn update_user(data: Data<Client>, user:Json<UpdateData>)-> impl Respo
     }
 }
 
+/* 
 #[post("/api/users/newcard")]
 pub async fn user_new_card(data: Data<Client>, card:Json<InputCard>)->impl Responder{
     let coll_user:Collection<User> = data.database(MONGO_DB).collection(MONGOCOLLECTION);
+    let coll_card:Collection<Card> = data.database(MONGO_DB).collection(MONGOCOLLECTION_CARDS);
     
+    let find_card = coll_card.find_one(doc!{
+        "barcode_id": card.barcode_id.to_owned()
+    }, None);
+
+
     let user = coll_user.update_one(
         doc! {"_id":card.user_id}, 
         doc! {"$push":{
@@ -91,4 +102,4 @@ pub async fn user_new_card(data: Data<Client>, card:Json<InputCard>)->impl Respo
         Err(err)=>HttpResponse::InternalServerError().body(err.to_string())
     }
 }
-
+*/
