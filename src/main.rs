@@ -26,6 +26,7 @@ async fn main() -> std::io::Result<()> {
         .service(user_controller::sign_in)
         .service(user_controller::sign_up)
         .service(user_controller::update_user)
+        .service(user_controller::user_new_card)
     })
         .bind(("127.0.0.1", 8080))?
         .run()

@@ -3,13 +3,13 @@ use crate::model::model::{User, Login, Register, UpdateData, InputCard, UserType
 use actix_web::{web::{Path, Json, Data}, HttpResponse, Responder, post, get};
 use mongodb::{Client, bson::{doc, oid::ObjectId}, Collection};
 const MONGO_DB: &'static str = "dev";
-const MONGOCOLLECTION: &'static str = "users";
-const MONGOCOLLECTION_CARDS: &'static str = "cards";
+const MONGO_COLLECTION: &'static str = "users";
+const MONGO_COLLECTION_CARDS: &'static str = "cards";
 
 #[get("/api/users/{id}")]
 pub async fn get_user_by_id(data: Data<Client>,user_id:Path<String>) -> impl Responder {
     let user_id = user_id.into_inner();
-    let collection:Collection<User> = data.database(MONGO_DB).collection(MONGOCOLLECTION); 
+    let collection:Collection<User> = data.database(MONGO_DB).collection(MONGO_COLLECTION); 
     
     match collection
         .find_one(doc! {"_id": ObjectId::parse_str(&user_id).unwrap()}, None)
@@ -25,7 +25,7 @@ pub async fn get_user_by_id(data: Data<Client>,user_id:Path<String>) -> impl Res
 
 #[post("/api/users/signin")]
 pub async fn sign_in(data: Data<Client>, user:Json<Login>) -> impl Responder{
-    let collection:Collection<User> = data.database(MONGO_DB).collection(MONGOCOLLECTION);
+    let collection:Collection<User> = data.database(MONGO_DB).collection(MONGO_COLLECTION);
     let user_find = collection.find_one(
         doc!{
             "email": user.email.to_owned()
@@ -47,10 +47,10 @@ pub async fn sign_in(data: Data<Client>, user:Json<Login>) -> impl Responder{
 #[post("/api/users/signup")]
 pub async fn sign_up(data: Data<Client>,user:Json<Register>)-> impl Responder{
     let hash_pass = hash(user.password.as_deref().map(|s| s.as_bytes()).unwrap_or(&[]),DEFAULT_COST).unwrap();
-    let coll = data.database(MONGO_DB).collection(MONGOCOLLECTION);
+    let coll = data.database(MONGO_DB).collection(MONGO_COLLECTION);
     let data = User{
         _id:None,
-        cards:None,
+        cards:Vec::new(),
         email:user.email.to_owned(),
         password:Some(hash_pass.to_owned()),
         username:user.username.to_owned(),
@@ -66,7 +66,7 @@ pub async fn sign_up(data: Data<Client>,user:Json<Register>)-> impl Responder{
 #[post("/api/users/update")]
 pub async fn update_user(data: Data<Client>, user:Json<UpdateData>)-> impl Responder{
     let update_pass = hash(user.password.as_deref().map(|s| s.as_bytes()).unwrap_or(&[]), DEFAULT_COST).unwrap();
-    let coll:Collection<User> = data.database(MONGO_DB).collection(MONGOCOLLECTION);
+    let coll:Collection<User> = data.database(MONGO_DB).collection(MONGO_COLLECTION);
     let updated = coll.update_one(doc! {"_id":&user._id},
     doc! {"$set":{
     "email":user.email.to_owned(),
@@ -80,26 +80,30 @@ pub async fn update_user(data: Data<Client>, user:Json<UpdateData>)-> impl Respo
     }
 }
 
-/* 
 #[post("/api/users/newcard")]
 pub async fn user_new_card(data: Data<Client>, card:Json<InputCard>)->impl Responder{
-    let coll_user:Collection<User> = data.database(MONGO_DB).collection(MONGOCOLLECTION);
-    let coll_card:Collection<Card> = data.database(MONGO_DB).collection(MONGOCOLLECTION_CARDS);
+    let coll_user:Collection<User> = data.database(MONGO_DB).collection(MONGO_COLLECTION);
+    let coll_card:Collection<Card> = data.database(MONGO_DB).collection(MONGO_COLLECTION_CARDS);
     
-    let find_card = coll_card.find_one(doc!{
-        "barcode_id": card.barcode_id.to_owned()
-    }, None);
+    let find_card = match coll_card.find_one(doc! {
+        "barcode": card.barcode_id.to_owned(),
+        "gym": card.gym_id.to_owned()
+    }, None).await {
+        Ok(Some(card)) => card,
+        Ok(None) => return HttpResponse::NotFound().body("This card does not exist"),
+        Err(err) => return HttpResponse::InternalServerError().body(err.to_string()),
+    };
 
+    let update_result = coll_user.update_one(doc! {
+        "_id": card.user_id.to_owned(),
+    }, doc! {
+        "$push": {
+            "cards": find_card.id.clone()
+        }
+    }, None).await;
 
-    let user = coll_user.update_one(
-        doc! {"_id":card.user_id}, 
-        doc! {"$push":{
-            "cards": card.barcode_id.to_owned()
-        }}, None).await;
-
-    match user{
-        Ok(_)=>HttpResponse::Ok().body("new card for user inserted"),
-        Err(err)=>HttpResponse::InternalServerError().body(err.to_string())
+    match update_result {
+        Ok(_) => HttpResponse::Ok().body("Card has been connected to your account"),
+        Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
     }
 }
-*/
