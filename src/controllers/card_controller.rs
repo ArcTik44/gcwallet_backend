@@ -1,5 +1,5 @@
-use actix_web::{Responder, get,post, web::{Data, Path, Json}, HttpResponse};
-use mongodb::{Client, Collection, bson::doc};
+use actix_web::{Responder, post, web::{Data, Json}, HttpResponse};
+use mongodb::{Client, Collection};
 use crate::model::model::{Card, InsertGymCard};
 const MONGO_DB: &'static str = "dev";
 const MONGO_COLLECTION: &'static str = "cards";

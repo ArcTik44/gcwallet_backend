@@ -1,7 +1,7 @@
 mod controllers;
 mod model;
 
-use controllers::user_controller;
+use controllers::{user_controller, gym_controller};
 use dotenv::dotenv;
 use actix_web::{ App, HttpServer, get, HttpResponse, Responder, web};
 use mongodb::Client;
@@ -27,6 +27,7 @@ async fn main() -> std::io::Result<()> {
         .service(user_controller::sign_up)
         .service(user_controller::update_user)
         .service(user_controller::user_new_card)
+        .service(gym_controller::get_all_gyms)
     })
         .bind(("127.0.0.1", 8080))?
         .run()

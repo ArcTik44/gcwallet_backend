@@ -1,6 +1,6 @@
 use bcrypt::{DEFAULT_COST,hash, verify};
 use crate::model::model::{User, Login, Register, UpdateData, InputCard, UserType, Card};
-use actix_web::{web::{Path, Json, Data}, HttpResponse, Responder, post, get};
+use actix_web::{web::{Path, Json, Data}, HttpResponse, Responder, post, get, put};
 use mongodb::{Client, bson::{doc, oid::ObjectId}, Collection};
 const MONGO_DB: &'static str = "dev";
 const MONGO_COLLECTION: &'static str = "users";
@@ -62,7 +62,7 @@ pub async fn sign_up(data: Data<Client>,user:Json<Register>)-> impl Responder{
     }
 }
  
-#[post("/api/users/update")]
+#[put("/api/users/update")]
 pub async fn update_user(data: Data<Client>, user:Json<UpdateData>)-> impl Responder{
     let update_pass = hash(user.password.as_deref().map(|s| s.as_bytes()).unwrap_or(&[]), DEFAULT_COST).unwrap();
     let coll:Collection<User> = data.database(MONGO_DB).collection(MONGO_COLLECTION);
