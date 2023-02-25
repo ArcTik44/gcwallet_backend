@@ -40,7 +40,6 @@ pub async fn sign_in(data: Data<Client>, user:Json<Login>) -> impl Responder{
         }
         Ok(None)=> HttpResponse::NotFound().body(format!("User does not exist")),
         Err(err)=> HttpResponse::InternalServerError().body(err.to_string()),
-        
     }
 }
 
@@ -62,7 +61,7 @@ pub async fn sign_up(data: Data<Client>,user:Json<Register>)-> impl Responder{
         Err(err)=>HttpResponse::InternalServerError().body(err.to_string())
     }
 }
-
+ 
 #[post("/api/users/update")]
 pub async fn update_user(data: Data<Client>, user:Json<UpdateData>)-> impl Responder{
     let update_pass = hash(user.password.as_deref().map(|s| s.as_bytes()).unwrap_or(&[]), DEFAULT_COST).unwrap();
@@ -81,13 +80,13 @@ pub async fn update_user(data: Data<Client>, user:Json<UpdateData>)-> impl Respo
 }
 
 #[post("/api/users/newcard")]
-pub async fn user_new_card(data: Data<Client>, card:Json<InputCard>)->impl Responder{
+pub async fn user_new_card(data: Data<Client>, input_card:Json<InputCard>)->impl Responder{
     let coll_user:Collection<User> = data.database(MONGO_DB).collection(MONGO_COLLECTION);
     let coll_card:Collection<Card> = data.database(MONGO_DB).collection(MONGO_COLLECTION_CARDS);
     
     let find_card = match coll_card.find_one(doc! {
-        "barcode": card.barcode_id.to_owned(),
-        "gym": card.gym_id.to_owned()
+        "barcode": input_card.barcode.to_owned(),
+        "gym": input_card.gym_id.to_owned()
     }, None).await {
         Ok(Some(card)) => card,
         Ok(None) => return HttpResponse::NotFound().body("This card does not exist"),
@@ -95,10 +94,10 @@ pub async fn user_new_card(data: Data<Client>, card:Json<InputCard>)->impl Respo
     };
 
     let update_result = coll_user.update_one(doc! {
-        "_id": card.user_id.to_owned(),
+        "_id": input_card.user_id.to_owned(),
     }, doc! {
         "$push": {
-            "cards": find_card.id.clone()
+            "cards": find_card._id.clone()
         }
     }, None).await;
 
