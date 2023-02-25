@@ -1,7 +1,7 @@
 use bcrypt::{DEFAULT_COST,hash, verify};
 use crate::model::model::{User, Login, Register, UpdateData, InputCard, UserType, Card};
 use actix_web::{web::{Path, Json, Data}, HttpResponse, Responder, post, get, put};
-use mongodb::{Client, bson::{doc, oid::ObjectId}, Collection};
+use mongodb::{Client, bson::{doc, oid::ObjectId, Bson}, Collection};
 const MONGO_DB: &'static str = "dev";
 const MONGO_COLLECTION: &'static str = "users";
 const MONGO_COLLECTION_CARDS: &'static str = "cards";
@@ -64,14 +64,26 @@ pub async fn sign_up(data: Data<Client>,user:Json<Register>)-> impl Responder{
  
 #[put("/api/users/update")]
 pub async fn update_user(data: Data<Client>, user:Json<UpdateData>)-> impl Responder{
-    let update_pass = hash(user.password.as_deref().map(|s| s.as_bytes()).unwrap_or(&[]), DEFAULT_COST).unwrap();
     let coll:Collection<User> = data.database(MONGO_DB).collection(MONGO_COLLECTION);
-    let updated = coll.update_one(doc! {"_id":&user._id},
-    doc! {"$set":{
-    "email":user.email.to_owned(),
-    "password":update_pass.to_owned(),
-    "username":user.username.to_owned()
-    }}, None).await;
+    
+    let mut update_doc = doc! {};
+
+    if let Some(email) = user.email.as_deref().filter(|&s| !s.is_empty()) {
+        update_doc.insert("email", Bson::String(email.to_owned()));
+    }
+
+    if let Some(password) = user.password.as_deref().filter(|&s| !s.is_empty()) {
+        let update_pass = hash(password.as_bytes(), DEFAULT_COST).unwrap();
+        update_doc.insert("password", Bson::String(update_pass));
+    }
+
+    if let Some(username) = user.username.as_deref().filter(|&s| !s.is_empty()) {
+        update_doc.insert("username", Bson::String(username.to_owned()));
+    }
+
+    let updated = coll
+        .update_one(doc! {"_id":&user._id}, doc! {"$set": update_doc}, None)
+        .await;
 
     match updated{
         Ok(_)=>HttpResponse::Ok().body("user update successful"),
