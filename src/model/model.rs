@@ -1,11 +1,12 @@
 use mongodb::bson::oid::ObjectId;
 use serde::{Serialize, Deserialize};
+use chrono::{TimeZone,Utc};
 
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub struct User{
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub _id: Option<ObjectId>,
-    pub cards:Option<Vec<Card>>,
+    pub cards:Vec<Option<Card>>,
     pub email:Option<String>,
     pub password:Option<String>,
     pub username:Option<String>,
@@ -25,6 +26,14 @@ pub struct Gym{
     pub name:Option<String>,
     pub address:Option<String>,
     pub email:Option<String>
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
+pub struct InsertGymCard{
+    pub user_type:UserType,
+    pub barcode:Option<String>,
+    pub gym: Option<ObjectId>,
+    pub subscription: Option<SubscriptionType>
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
@@ -53,15 +62,15 @@ pub struct UpdateData{
 pub struct Card{
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub _id: Option<ObjectId>,
-    pub gym: Option<Gym>,
-    pub barcode_id:Option<String>,
+    pub gym: Option<ObjectId>,
+    pub barcode:Option<String>,
     pub subscription: Option<SubscriptionType>
 }
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub struct InputCard{
-    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub user_id:Option<ObjectId>,
-    pub barcode_id:Option<String>
+    pub barcode:Option<String>,
+    pub gym_id:Option<ObjectId>
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
