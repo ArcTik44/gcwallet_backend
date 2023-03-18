@@ -5,6 +5,9 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[registries.crates-io]
+protocol = "sparse"
+
 [profile.release]
 opt-level = 3
 
@@ -21,3 +24,4 @@ mongodb = "2.3.1"
 bcrypt = "0.14.0"
 serde = { version = "1.0.152", features = ["derive"] }
 dotenv = "0.15.0"
+actix-cors = "0.6.4"

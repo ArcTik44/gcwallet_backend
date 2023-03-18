@@ -1,9 +1,10 @@
 mod controllers;
 mod model;
 
+use actix_cors::Cors;
 use controllers::{user_controller, gym_controller, card_controller};
 use dotenv::dotenv;
-use actix_web::{ App, HttpServer, get, HttpResponse, Responder, web};
+use actix_web::{ App, HttpServer, get, HttpResponse, Responder, web, http};
 use mongodb::Client;
 
 #[get("/")]
@@ -20,7 +21,14 @@ async fn main() -> std::io::Result<()> {
     
     let client = Client::with_uri_str(mongo_uri).await.expect("No MongoDB connection key");
     HttpServer::new(move||{ 
+        let cors = Cors::default()
+              .allow_any_origin()
+              .allowed_methods(vec!["GET", "POST","PUT"])
+              .allowed_headers(vec![http::header::ACCEPT,http::header::CONTENT_TYPE])
+              .max_age(5000);
+
         App::new()
+        .wrap(cors)
         .app_data(web::Data::new(client.clone()))
         .service(hello)
         .service(user_controller::sign_in)
