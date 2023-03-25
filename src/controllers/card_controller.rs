@@ -21,7 +21,7 @@ pub async fn gym_new_card(data:Data<Client>,card_insert:Json<InsertGymCard>)->im
 }
 
 #[get("/api/cards/{id}")]
-pub async fn card_with_id(data:Data<Client>,card_id:Path<String>)->impl Responder{
+pub async fn get_card_with_id(data:Data<Client>,card_id:Path<String>)->impl Responder{
     let card_id = card_id.into_inner();
     let card_coll:Collection<Card> = data.database(MONGO_DB).collection(MONGO_COLLECTION);
 

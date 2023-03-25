@@ -25,7 +25,7 @@ async fn main() -> std::io::Result<()> {
               .allow_any_origin()
               .allowed_methods(vec!["GET", "POST","PUT"])
               .allowed_headers(vec![http::header::ACCEPT,http::header::CONTENT_TYPE])
-              .max_age(5000);
+              .max_age(10000);
 
         App::new()
         .wrap(cors)
@@ -38,7 +38,7 @@ async fn main() -> std::io::Result<()> {
         .service(gym_controller::get_all_gyms)
         .service(gym_controller::get_gym_with_id)
         .service(user_controller::get_user_by_id)
-        .service(card_controller::card_with_id)
+        .service(card_controller::get_card_with_id)
     })
         .bind(("127.0.0.1", 8080))?
         .run()

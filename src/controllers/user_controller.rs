@@ -56,8 +56,17 @@ pub async fn sign_up(data: Data<Client>,user:Json<Register>)-> impl Responder{
         user_type: UserType::User
     };
     let inserted = coll.insert_one(data,None).await;
+
+    let logged_in = coll.find_one(doc! {
+        "email":user.email.to_owned(),
+        "password":Some(hash_pass.to_owned())
+    }, None).await;
+    
     match inserted{
-        Ok(_)=>HttpResponse::Ok().body("new user inserted"),
+        Ok(_)=> match logged_in{
+            Ok(user)=>HttpResponse::Ok().json(user),
+            Err(err)=> HttpResponse::InternalServerError().body(err.to_string())
+        },
         Err(err)=>HttpResponse::InternalServerError().body(err.to_string())
     }
 }
