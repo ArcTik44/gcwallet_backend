@@ -24,8 +24,7 @@ async fn main() -> std::io::Result<()> {
         let cors = Cors::default()
               .allow_any_origin()
               .allowed_methods(vec!["GET", "POST","PUT"])
-              .allowed_headers(vec![http::header::ACCEPT,http::header::CONTENT_TYPE])
-              .max_age(10000);
+              .allowed_headers(vec![http::header::ACCEPT,http::header::CONTENT_TYPE]);
 
         App::new()
         .wrap(cors)
